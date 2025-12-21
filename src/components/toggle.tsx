@@ -48,7 +48,7 @@ const states: {
     value: "prod",
     label: "Prod",
     icon: Zap,
-    disabled: false,
+    disabled: true,
   },
 ];
 

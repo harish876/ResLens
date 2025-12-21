@@ -40,9 +40,9 @@ interface ModeProviderProps {
 }
 
 export function ModeProvider({ children }: ModeProviderProps) {
-  const [mode, setMode] = useState<ModeType>("prod");
+  const [mode, setMode] = useState<ModeType>("development");
   const [isLoading, setIsLoading] = useState(true);
-  const [currentInstance, setCurrentInstance] = useState<string>("production");
+  const [currentInstance, setCurrentInstance] = useState<string>("development");
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -59,7 +59,7 @@ export function ModeProvider({ children }: ModeProviderProps) {
         const errorMsg = `Invalid instance: ${targetInstance}. Only 'development' and 'production' are allowed.`;
         console.error(errorMsg);
         setError(errorMsg);
-        setMode("prod");
+        setMode("development");
         setIsLoading(false);
         return;
       }
