@@ -51,7 +51,7 @@ export function ModeProvider({ children }: ModeProviderProps) {
       setIsLoading(true);
       setError(null); // Clear previous errors
       
-      const targetInstance = instance || "production";
+      const targetInstance = instance || "development";
       
       // Validate instance parameter
       const validInstances = ['development', 'production'];
@@ -65,7 +65,8 @@ export function ModeProvider({ children }: ModeProviderProps) {
       }
       
       // Skip if we're already using the correct instance
-      if (currentInstance === targetInstance && mode === "prod") {
+      const desiredMode: ModeType = targetInstance === "development" ? "development" : "prod";
+      if (currentInstance === targetInstance && mode === desiredMode) {
         console.log(`Already using ${targetInstance} API, skipping health check`);
         return;
       }
@@ -77,10 +78,11 @@ export function ModeProvider({ children }: ModeProviderProps) {
       
       const response = await api.get("/healthcheck");
       if (response?.status === 200) {
-        setMode("prod");
+        setMode(desiredMode);
         setCurrentInstance(targetInstance);
       } else {
-        setMode("development");
+        // Fall back to the other mode if the target instance doesn't respond
+        setMode(desiredMode === "prod" ? "development" : "prod");
       }
     } catch (error) {
       setMode("development");
@@ -132,7 +134,8 @@ export function ModeProvider({ children }: ModeProviderProps) {
   };
 
   async function getMode() {
-    await checkMode(); // Default to production
+    // Default to development on initial load
+    await checkMode("development");
   }
 
   useEffect(() => {
