@@ -53,6 +53,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 
 import { FlameGraph as GrafanaFlameGraph } from '@grafana/flamegraph';
 
@@ -159,6 +160,14 @@ interface FlamegraphCardProps {
 export const Flamegraph = (props: FlamegraphCardProps) => {
   const { toast } = useToast();
   const { mode, api, refreshTrigger } = useMode();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  // Get initial values from URL parameters
+  const initialSearchQuery = searchParams.get('searchQuery') || "";
+  const initialViewType = searchParams.get('viewType') as ViewTypes || "both";
+  const initialInterval = searchParams.get('interval') || "now-5m";
+  
   const [clientName, setClientName] = useState("cpp_client_1");
   const [profilingData, setProfilingData] = useState(ProfileData1);
 
@@ -170,9 +179,9 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
    * UI Client State
    */
   const [flamegraphDisplayType, setFlamegraphDisplayType] =
-    useState<ViewTypes>("both");
+    useState<ViewTypes>(initialViewType);
   const [flamegraphInterval, setFlamegraphInterval] =
-    useState<string>("now-5m");
+    useState<string>(initialInterval);
   const [_, setSearchQueryToggle] = useState(true); //dummy dispatch not used functionally
   const [refresh, setRefresh] = useState(false);
   const [error, setError] = useState("");
@@ -180,8 +189,11 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
   const [query, setSearchQuery] = useState<
     FlamegraphRendererProps["sharedQuery"]
   >({
-    searchQuery: "",
-    onQueryChange: (value: any) => { },
+    searchQuery: initialSearchQuery,
+    onQueryChange: (value: any) => { 
+      // Update URL when search query changes
+      updateURLParams('searchQuery', value);
+    },
     syncEnabled: true,
     toggleSync: setSearchQueryToggle,
   });
@@ -198,12 +210,27 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
   const [resultCount, setResultCount] = useState<number>(0);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
+  function updateURLParams(key: string, value: string | null) {
+    const newParams = new URLSearchParams(searchParams);
+    
+    if (value && value.trim() !== '') {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
+    }
+    
+    // Update URL without refreshing page
+    setSearchParams(newParams);
+  }
+
   function handleFlamegraphTypeChange(value: string) {
     setFlamegraphDisplayType(value);
+    updateURLParams('viewType', value);
   }
 
   function handleFlamegraphIntervalChange(value: string) {
     setFlamegraphInterval(value);
+    updateURLParams('interval', value);
   }
 
   async function explainFlamegraph() {
@@ -784,14 +811,17 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                   <Input
                     id="function-name"
                     placeholder="Filter by function name"
-                    onChange={(e) =>
+                    value={query.searchQuery}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      updateURLParams('searchQuery', newValue);
                       setSearchQuery((prev) => {
                         return {
                           ...prev,
-                          searchQuery: e.target.value,
+                          searchQuery: newValue,
                         };
-                      })
-                    }
+                      });
+                    }}
                     className="w-64 bg-slate-800 border-slate-700"
                   />
                 </div>
@@ -822,7 +852,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                     </SelectContent>
                   </Select>
 
-                  <Select onValueChange={handleFlamegraphTypeChange}>
+                  <Select onValueChange={handleFlamegraphTypeChange} value={flamegraphDisplayType}>
                     <SelectTrigger
                       className="w-[120px] h-[30px]"
                       id="graph-type"
@@ -837,7 +867,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                     </SelectContent>
                   </Select>
 
-                  <Select onValueChange={handleFlamegraphIntervalChange}>
+                  <Select onValueChange={handleFlamegraphIntervalChange} value={flamegraphInterval}>
                     <SelectTrigger className="w-[120px] h-[30px]">
                       <SelectValue placeholder="Interval" />
                     </SelectTrigger>
@@ -865,6 +895,41 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                     showToolbar={true}
                     colorMode="dark"
                     sharedQuery={query}
+                    onNodeClick={(nodeName, nodeData) => {
+                      const action = nodeData?.action || 'default';
+                      
+                      switch(action) {
+                        case 'viewCode':
+                          console.log('Viewing code for:', nodeName);
+                          // Extract function name and potential path information from the node name
+                          const functionName = nodeName.split('/').pop()?.split('(')[0] || nodeName;
+                          
+                          // Example: Redirect to GitHub search for this function
+                          // This URL should be configured based on your repository
+                          const repoUrl = 'https://github.com/your-org/your-repo/search';
+                          const searchQuery = `?q=${encodeURIComponent(functionName)}&type=code`;
+                          window.open(repoUrl + searchQuery, '_blank');
+                          break;
+                          
+                        case 'explainCode':
+                          console.log('Explaining code for:', nodeName);
+                          // Here you could trigger your explanation API endpoint
+                          // Similar to your existing explainFlamegraph function
+                          
+                          toast({
+                            title: "Explaining Function",
+                            description: `Analyzing code for ${nodeName}...`,
+                            variant: "default",
+                          });
+                          
+                          // You could call your explainCode API here
+                          // explainCode(nodeName);
+                          break;
+                          
+                        default:
+                          console.log('Default action for node:', nodeName, nodeData);
+                      }
+                    }}
                   />
                 )}
               </div>

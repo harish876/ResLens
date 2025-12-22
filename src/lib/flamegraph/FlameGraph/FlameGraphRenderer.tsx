@@ -84,6 +84,9 @@ export interface FlamegraphRendererProps {
   showCredit?: boolean;
   ExportData?: ProfileHeaderProps['ExportData'];
   colorMode?: 'light' | 'dark';
+  
+  /** Custom handler for when a node is clicked - can be used for navigation/redirects */
+  onNodeClick?: (nodeName: string, nodeData?: any) => void;
 
   /** @deprecated  prefer Profile */
   flamebearer?: Flamebearer;
@@ -424,6 +427,7 @@ class FlameGraphRenderer extends Component<
         isDirty={this.isDirty}
         palette={this.state.palette}
         toolbarVisible={toolbarVisible}
+        onNodeClick={this.props.onNodeClick}
         setPalette={(p) =>
           this.setState({
             palette: p,
@@ -480,6 +484,7 @@ class FlameGraphRenderer extends Component<
           isDirty={this.isDirty}
           palette={this.state.palette}
           toolbarVisible={toolbarVisible}
+          onNodeClick={this.props.onNodeClick}
           setPalette={(p) =>
             this.setState({
               palette: p,

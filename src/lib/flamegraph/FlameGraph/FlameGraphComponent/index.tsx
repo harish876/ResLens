@@ -6,6 +6,8 @@ import { faRedo } from '@fortawesome/free-solid-svg-icons/faRedo';
 import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy';
 import { faHighlighter } from '@fortawesome/free-solid-svg-icons/faHighlighter';
 import { faCompressAlt } from '@fortawesome/free-solid-svg-icons/faCompressAlt';
+import { faCode } from '@fortawesome/free-solid-svg-icons/faCode';
+import { faInfoCircle } from '@fortawesome/free-solid-svg-icons/faInfoCircle';
 import { MenuItem } from '@/lib/webapp/javascript/ui/Menu';
 import useResizeObserver from '@react-hook/resize-observer';
 import { Maybe } from 'true-myth';
@@ -40,6 +42,9 @@ interface FlamegraphProps {
   onFocusOnNode: (i: number, j: number) => void;
   setActiveItem: (item: { name: string }) => void;
   updateView?: (v: ViewTypes) => void;
+  
+  // Custom handler for node clicks - can be used for navigation/redirects
+  onNodeClick?: (nodeName: string, nodeData?: any) => void;
 
   onReset: () => void;
   isDirty: () => boolean;
@@ -76,6 +81,7 @@ export default function FlameGraphComponent(props: FlamegraphProps) {
     setActiveItem,
     selectedItem,
     updateView,
+    onNodeClick,
   } = props;
 
   const { onZoom, onReset, isDirty, onFocusOnNode } = props;
@@ -111,11 +117,23 @@ export default function FlameGraphComponent(props: FlamegraphProps) {
       // clicked on an invalid node
       Nothing: () => {},
       Just: (bar) => {
+        // If Ctrl/Cmd or Shift key is pressed and onNodeClick is provided,
+        // just call onNodeClick without zooming
+        if ((e.ctrlKey || e.metaKey || e.shiftKey) && onNodeClick && bar.name) {
+          onNodeClick(bar.name, bar);
+          return;
+        }
+
         zoom.match({
           // there's no existing zoom
           // so just zoom on the clicked node
           Nothing: () => {
             onZoom(opt);
+            
+            // Call onNodeClick after zooming if provided
+            if (onNodeClick && bar.name) {
+              onNodeClick(bar.name, bar);
+            }
           },
 
           // it's already zoomed
@@ -127,6 +145,11 @@ export default function FlameGraphComponent(props: FlamegraphProps) {
               onZoom(Maybe.nothing());
             } else {
               onZoom(opt);
+              
+              // Call onNodeClick after zooming if provided
+              if (onNodeClick && bar.name) {
+                onNodeClick(bar.name, bar);
+              }
             }
           },
         });
@@ -244,6 +267,48 @@ export default function FlameGraphComponent(props: FlamegraphProps) {
           </MenuItem>
         );
       };
+      
+      const CustomNavItem = () => {
+        if (!onNodeClick) {
+          return null;
+        }
+        
+        const barName = bar.isJust ? bar.value.name : '';
+        const barData = bar.isJust ? bar.value : undefined;
+        
+        const handleViewCode = () => {
+          if (onNodeClick && barName) {
+            // Pass 'viewCode' as action type to onNodeClick
+            onNodeClick(barName, { ...barData, action: 'viewCode' });
+          }
+        };
+        
+        const handleExplainCode = () => {
+          if (onNodeClick && barName) {
+            // Pass 'explainCode' as action type to onNodeClick
+            onNodeClick(barName, { ...barData, action: 'explainCode' });
+          }
+        };
+        
+        return (
+          <>
+            <MenuItem
+              key="view-code"
+              onClick={handleViewCode}
+            >
+              <FontAwesomeIcon icon={faCode} />
+              View Code
+            </MenuItem>
+            <MenuItem
+              key="explain-code"
+              onClick={handleExplainCode}
+            >
+              <FontAwesomeIcon icon={faInfoCircle} />
+              Explain Code
+            </MenuItem>
+          </>
+        );
+      };
 
       const FitModeItem = () => {
         const isHeadFirst = fitMode === HeadMode;
@@ -270,14 +335,15 @@ export default function FlameGraphComponent(props: FlamegraphProps) {
           <FontAwesomeIcon icon={faRedo} />
           Reset View
         </MenuItem>,
-        CollapseItem(),
+        !disableClick && CollapseItem(),
         CopyItem(),
-        HighlightSimilarNodesItem(),
-        OpenInSandwichViewItem(),
-        FitModeItem(),
+        CustomNavItem(),
+        !disableClick && HighlightSimilarNodesItem(),
+        !disableClick && OpenInSandwichViewItem(),
+        !disableClick && FitModeItem(),
       ].filter(Boolean) as JSX.Element[];
     },
-    [flamegraph, selectedItem, fitMode]
+    [flamegraph, selectedItem, fitMode, onNodeClick, disableClick]
   );
 
   const constructCanvas = () => {
@@ -400,14 +466,14 @@ export default function FlameGraphComponent(props: FlamegraphProps) {
         />
       )}
 
-      {!disableClick && flamegraph && canvasRef && (
-        <ContextMenu
-          canvasRef={canvasRef}
-          xyToMenuItems={xyToContextMenuItems}
-          onClose={onContextMenuClose}
-          onOpen={onContextMenuOpen}
-        />
-      )}
+{flamegraph && canvasRef && (
+  <ContextMenu
+    canvasRef={canvasRef}
+    xyToMenuItems={xyToContextMenuItems}
+    onClose={onContextMenuClose}
+    onOpen={onContextMenuOpen}
+  />
+)}
     </div>
   );
 }
