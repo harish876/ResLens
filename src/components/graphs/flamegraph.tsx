@@ -900,30 +900,37 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                       
                       switch(action) {
                         case 'viewCode':
-                          console.log('Viewing code for:', nodeName);
-                          // Extract function name and potential path information from the node name
-                          const functionName = nodeName.split('/').pop()?.split('(')[0] || nodeName;
+                          let functionName = nodeName.split('/').pop()?.split('(')[0] || nodeName;
+                          let repoUrl = '';
                           
-                          // Example: Redirect to GitHub search for this function
-                          // This URL should be configured based on your repository
-                          const repoUrl = 'https://github.com/your-org/your-repo/search';
+                          if (functionName.startsWith('resdb::')) {
+                            functionName = functionName.replace(/^resdb::/, '');
+                            repoUrl = 'https://github.com/apache/incubator-resilientdb/search';
+                          } else if (functionName.startsWith('leveldb::')) {
+                            functionName = functionName.replace(/^leveldb::/, '');
+                            repoUrl = 'https://github.com/google/leveldb/search';
+                          } else {
+                            toast({
+                              title: "Non-namespace Function",
+                              description: `Function ${functionName} does not have a resdb:: or leveldb:: namespace prefix`,
+                              variant: "default",
+                            });
+                            break;
+                          }
+                          
                           const searchQuery = `?q=${encodeURIComponent(functionName)}&type=code`;
                           window.open(repoUrl + searchQuery, '_blank');
                           break;
                           
                         case 'explainCode':
                           console.log('Explaining code for:', nodeName);
-                          // Here you could trigger your explanation API endpoint
-                          // Similar to your existing explainFlamegraph function
-                          
+
                           toast({
                             title: "Explaining Function",
                             description: `Analyzing code for ${nodeName}...`,
                             variant: "default",
                           });
                           
-                          // You could call your explainCode API here
-                          // explainCode(nodeName);
                           break;
                           
                         default:
