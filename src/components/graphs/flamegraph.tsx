@@ -19,14 +19,14 @@
  */
 
 //@ts-nocheck
-import "@pyroscope/flamegraph/dist/index.css";
+import "@/lib/flamegraph/index.css";
 
 import { useContext, useEffect } from "react";
 import { useState } from "react";
-import { FlamegraphRenderer } from "@pyroscope/flamegraph";
+import { FlamegraphRenderer } from "@/lib/flamegraph/FlamegraphRenderer";
 import { ProfileData1 } from "@/static/testFlamegraph";
 import { Button } from "../ui/button";
-import { ViewTypes } from "@pyroscope/flamegraph/dist/packages/pyroscope-flamegraph/src/FlameGraph/FlameGraphComponent/viewTypes";
+import { ViewTypes } from "@/lib/flamegraph/FlameGraph/FlameGraphComponent";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -53,6 +53,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+import { FlameGraph as GrafanaFlameGraph } from '@grafana/flamegraph';
 
 const steps = [
   {
@@ -179,7 +181,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
     FlamegraphRendererProps["sharedQuery"]
   >({
     searchQuery: "",
-    onQueryChange: (value: any) => {},
+    onQueryChange: (value: any) => { },
     syncEnabled: true,
     toggleSync: setSearchQueryToggle,
   });
@@ -289,7 +291,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
       const data = await response.json();
       setSeedingStatus(data.status);
       setResultCount(data.results_count || 0);
-      
+
       // Calculate progress
       if (data.status === 'running' && selectedCount > 0) {
         const currentProgress = Math.min((data.results_count / selectedCount) * 100, 100);
@@ -297,7 +299,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
       } else if (data.status === 'stopped') {
         setProgress(100);
       }
-      
+
       return data;
     } catch (error) {
       setSeedingStatus('error');
@@ -308,20 +310,20 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
   function startPolling() {
     const interval = setInterval(async () => {
       const statusData = await checkStatus();
-      
+
       if (statusData?.status === 'stopped') {
         // Seeding is complete
         clearInterval(interval);
         setPollingInterval(null);
         setSetValuesLoading(false);
         setAbortController(null);
-        
+
         toast({
           title: "Seeding Complete",
           description: `Successfully seeded ${resultCount} values. Check the flamegraph for new data.`,
           variant: "default",
         });
-        
+
         // Refresh the flamegraph to show new data
         refreshFlamegraph();
       } else if (statusData?.status === 'error') {
@@ -330,7 +332,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
         setPollingInterval(null);
         setSetValuesLoading(false);
         setAbortController(null);
-        
+
         toast({
           title: "Seeding Failed",
           description: "An error occurred during seeding. Please try again.",
@@ -338,7 +340,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
         });
       }
     }, 1000); // Poll every second
-    
+
     setPollingInterval(interval);
   }
 
@@ -368,7 +370,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
       setSetValuesLoading(true);
       const controller = new AbortController();
       setAbortController(controller);
-      
+
       // Trigger the seeding job
       const response = await fetch(`${import.meta.env.VITE_DEV_RESLENS_TOOLS_URL}/seed`, {
         method: 'POST',
@@ -380,20 +382,20 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
         }),
         signal: controller.signal
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       toast({
         title: "SetValues Seeding Started",
         description: `Started seeding ${selectedCount} values. Monitoring progress...`,
         variant: "default",
       });
-      
+
       // Start polling for status updates
       startPolling();
-      
+
     } catch (error) {
       if (error.name === 'AbortError') {
         toast({
@@ -418,17 +420,17 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
       const response = await fetch(`${import.meta.env.VITE_DEV_RESLENS_TOOLS_URL}/stop`, {
         method: 'POST'
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       toast({
         title: "Seeding Stopped",
         description: "The seeding operation has been stopped.",
         variant: "default",
       });
-      
+
       // Stop polling and update status
       stopPolling();
       setSetValuesLoading(false);
@@ -478,7 +480,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
 
   useEffect(() => {
     console.log(`Flamegraph: Mode changed to ${mode}, refreshTrigger: ${refreshTrigger}`);
-    
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -488,9 +490,9 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
           from = props.from;
           until = props.until;
         }
-        
+
         console.log(`Using ${mode} API endpoint for flamegraph data`);
-        
+
         const response = await api.post("/pyroscope/getProfile", {
           query: clientName,
           from: from,
@@ -547,7 +549,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
               <Button variant="outline" size="icon" onClick={refreshFlamegraph}>
                 <RefreshCcw id="refresh" />
               </Button>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="p-2 bg-slate-700 text-slate-400 hover:text-white hover:bg-slate-600 transition-colors duration-200 ease-in-out rounded flex items-center gap-1">
@@ -598,7 +600,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              
+
               <a
                 target="_blank"
                 href="https://pyroscope.io/blog/what-is-a-flamegraph/"
@@ -665,7 +667,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                       <span>Client: {clientName}</span>
                     </div>
                   </div>
-                  
+
                   {utilityBarOpen && (
                     <div className="mt-3 pt-3 border-t border-slate-700">
                       <div className="space-y-3">
@@ -673,22 +675,20 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                         <div className="flex items-center space-x-4 text-xs">
                           <div className="health-status flex items-center space-x-2">
                             <span className="text-slate-400">Health:</span>
-                            <span className={`px-2 py-1 rounded ${
-                              healthStatus === 'ok' ? 'bg-green-600 text-green-100' : 
-                              healthStatus === 'error' ? 'bg-red-600 text-red-100' : 
-                              'bg-yellow-600 text-yellow-100'
-                            }`}>
+                            <span className={`px-2 py-1 rounded ${healthStatus === 'ok' ? 'bg-green-600 text-green-100' :
+                                healthStatus === 'error' ? 'bg-red-600 text-red-100' :
+                                  'bg-yellow-600 text-yellow-100'
+                              }`}>
                               {healthStatus}
                             </span>
                           </div>
                           <div className="seeding-status flex items-center space-x-2">
                             <span className="text-slate-400">Status:</span>
-                            <span className={`px-2 py-1 rounded ${
-                              seedingStatus === 'running' ? 'bg-green-600 text-green-100' : 
-                              seedingStatus === 'stopped' ? 'bg-gray-600 text-gray-100' : 
-                              seedingStatus === 'error' ? 'bg-red-600 text-red-100' : 
-                              'bg-yellow-600 text-yellow-100'
-                            }`}>
+                            <span className={`px-2 py-1 rounded ${seedingStatus === 'running' ? 'bg-green-600 text-green-100' :
+                                seedingStatus === 'stopped' ? 'bg-gray-600 text-gray-100' :
+                                  seedingStatus === 'error' ? 'bg-red-600 text-red-100' :
+                                    'bg-yellow-600 text-yellow-100'
+                              }`}>
                               {seedingStatus}
                             </span>
                           </div>
@@ -702,7 +702,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                               <span className="text-slate-300">{resultCount} / {selectedCount} ({progress.toFixed(1)}%)</span>
                             </div>
                             <div className="w-full bg-slate-700 rounded-full h-2">
-                              <div 
+                              <div
                                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${progress}%` }}
                               ></div>
@@ -734,11 +734,10 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                             <button
                               onClick={setValuesLoading ? abortSetValues : fireSetValues}
                               disabled={healthStatus !== 'ok' || seedingStatus === 'running'}
-                              className={`abort-button px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${
-                                setValuesLoading 
-                                  ? "bg-red-600 hover:bg-red-700 text-white" 
+                              className={`abort-button px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${setValuesLoading
+                                  ? "bg-red-600 hover:bg-red-700 text-white"
                                   : "bg-blue-600 hover:bg-blue-700 text-white"
-                              } ${(healthStatus !== 'ok' || seedingStatus === 'running') ? "opacity-50 cursor-not-allowed" : ""}`}
+                                } ${(healthStatus !== 'ok' || seedingStatus === 'running') ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                               {setValuesLoading ? <Square size={12} /> : <Zap size={12} />}
                               <span>{setValuesLoading ? "Abort SetValues" : "Fire SetValues"}</span>
@@ -751,11 +750,10 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                             <button
                               onClick={stopSeeding}
                               disabled={seedingStatus !== 'running'}
-                              className={`px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${
-                                seedingStatus === 'running' 
-                                  ? "bg-orange-600 hover:bg-orange-700 text-white" 
+                              className={`px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${seedingStatus === 'running'
+                                  ? "bg-orange-600 hover:bg-orange-700 text-white"
                                   : "bg-gray-600 text-gray-400"
-                              }`}
+                                }`}
                             >
                               <Square size={12} />
                               <span>Stop Seeding</span>
@@ -780,7 +778,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                   )}
                 </div>
               )}
-              
+
               <div className="flex justify-between mb-4">
                 <div className="flex flex-row space-x-2">
                   <Input

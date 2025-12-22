@@ -25,8 +25,10 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@webapp": ["./src/lib/webapp/javascript"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/lib/flamegraph/**/*", "src/lib/webapp/**/*"]
 }
