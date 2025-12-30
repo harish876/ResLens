@@ -210,6 +210,15 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
   const [resultCount, setResultCount] = useState<number>(0);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // GET utility tools state
+  const [getLoading, setGetLoading] = useState(false);
+  const [getStatus, setGetStatus] = useState<string>("stopped");
+  const [selectedGetCount, setSelectedGetCount] = useState<number>(1000);
+  const [getProgress, setGetProgress] = useState<number>(0);
+  const [getResultCount, setGetResultCount] = useState<number>(0);
+  const [getAbortController, setGetAbortController] = useState<AbortController | null>(null);
+  const [getPollingInterval, setGetPollingInterval] = useState<NodeJS.Timeout | null>(null);
+
   function updateURLParams(key: string, value: string | null) {
     const newParams = new URLSearchParams(searchParams);
     
@@ -302,7 +311,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
 
   async function checkHealth() {
     try {
-      const response = await fetch(`${import.meta.env.VITE_DEV_RESLENS_TOOLS_URL}/health`);
+      const response = await fetch(`${import.meta.env.VITE_MIDDLEWARE_SECONDARY_BASE_URL}/reslens-tools/health`);
       const data = await response.json();
       setHealthStatus(data.status);
       return data.status === 'ok';
@@ -314,7 +323,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
 
   async function checkStatus() {
     try {
-      const response = await fetch(`${import.meta.env.VITE_DEV_RESLENS_TOOLS_URL}/status`);
+      const response = await fetch(`${import.meta.env.VITE_MIDDLEWARE_SECONDARY_BASE_URL}/reslens-tools/status`);
       const data = await response.json();
       setSeedingStatus(data.status);
       setResultCount(data.results_count || 0);
@@ -399,7 +408,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
       setAbortController(controller);
 
       // Trigger the seeding job
-      const response = await fetch(`${import.meta.env.VITE_DEV_RESLENS_TOOLS_URL}/seed`, {
+      const response = await fetch(`${import.meta.env.VITE_MIDDLEWARE_SECONDARY_BASE_URL}/reslens-tools/seed`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -444,7 +453,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
 
   async function stopSeeding() {
     try {
-      const response = await fetch(`${import.meta.env.VITE_DEV_RESLENS_TOOLS_URL}/stop`, {
+      const response = await fetch(`${import.meta.env.VITE_MIDDLEWARE_SECONDARY_BASE_URL}/reslens-tools/stop`, {
         method: 'POST'
       });
 
@@ -470,6 +479,179 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
         variant: "destructive",
       });
     }
+  }
+
+  async function checkGetStatus() {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_MIDDLEWARE_SECONDARY_BASE_URL}/reslens-tools/status_get`);
+      const data = await response.json();
+      setGetStatus(data.status);
+      setGetResultCount(data.results_count || 0);
+
+      // Calculate progress
+      if (data.status === 'running' && selectedGetCount > 0) {
+        const currentProgress = Math.min((data.results_count / selectedGetCount) * 100, 100);
+        setGetProgress(currentProgress);
+      } else if (data.status === 'stopped') {
+        setGetProgress(100);
+      }
+
+      return data;
+    } catch (error) {
+      setGetStatus('error');
+      return null;
+    }
+  }
+
+  function startGetPolling() {
+    const interval = setInterval(async () => {
+      const statusData = await checkGetStatus();
+
+      if (statusData?.status === 'stopped') {
+        // GET job is complete
+        clearInterval(interval);
+        setGetPollingInterval(null);
+        setGetLoading(false);
+        setGetAbortController(null);
+
+        toast({
+          title: "GET Operation Complete",
+          description: `Successfully completed ${getResultCount} GET operations. Check the flamegraph for new data.`,
+          variant: "default",
+        });
+
+        // Refresh the flamegraph to show new data
+        refreshFlamegraph();
+      } else if (statusData?.status === 'error') {
+        // Error occurred
+        clearInterval(interval);
+        setGetPollingInterval(null);
+        setGetLoading(false);
+        setGetAbortController(null);
+
+        toast({
+          title: "GET Operation Failed",
+          description: "An error occurred during GET operations. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }, 1000); // Poll every second
+
+    setGetPollingInterval(interval);
+  }
+
+  function stopGetPolling() {
+    if (getPollingInterval) {
+      clearInterval(getPollingInterval);
+      setGetPollingInterval(null);
+    }
+  }
+
+  async function fireGetOperations() {
+    try {
+      // First check health
+      const isHealthy = await checkHealth();
+      if (!isHealthy) {
+        toast({
+          title: "Service Unavailable",
+          description: "The GET service is not healthy. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Reset progress
+      setGetProgress(0);
+      setGetResultCount(0);
+      setGetLoading(true);
+      const controller = new AbortController();
+      setGetAbortController(controller);
+
+      // Generate sample keys for GET operations
+      const keys = Array.from({ length: 50 }, (_, i) => `key${i}`);
+
+      // Trigger the GET job
+      const response = await fetch(`${import.meta.env.VITE_MIDDLEWARE_SECONDARY_BASE_URL}/reslens-tools/get`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          keys: keys,
+          count: selectedGetCount
+        }),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      toast({
+        title: "GET Operations Started",
+        description: `Started ${selectedGetCount} GET operations. Monitoring progress...`,
+        variant: "default",
+      });
+
+      // Start polling for status updates
+      startGetPolling();
+
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        toast({
+          title: "GET Operations Aborted",
+          description: "The GET operation was cancelled.",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "GET Operations Failed",
+          description: `${error.message || "Failed to start GET operations"}. Please wait 30 seconds before trying again if needed.`,
+          variant: "destructive",
+        });
+      }
+      setGetLoading(false);
+      setGetAbortController(null);
+    }
+  }
+
+  async function stopGetOperations() {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_MIDDLEWARE_SECONDARY_BASE_URL}/reslens-tools/stop_get`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      toast({
+        title: "GET Operations Stopped",
+        description: "The GET operation has been stopped.",
+        variant: "default",
+      });
+
+      // Stop polling and update status
+      stopGetPolling();
+      setGetLoading(false);
+      setGetAbortController(null);
+      await checkGetStatus();
+    } catch (error) {
+      toast({
+        title: "Stop Failed",
+        description: error.message || "Failed to stop GET operations",
+        variant: "destructive",
+      });
+    }
+  }
+
+  function abortGetOperations() {
+    if (getAbortController) {
+      getAbortController.abort();
+      setGetLoading(false);
+      setGetAbortController(null);
+    }
+    stopGetPolling();
   }
 
   function abortSetValues() {
@@ -502,6 +684,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
   useEffect(() => {
     return () => {
       stopPolling();
+      stopGetPolling();
     };
   }, []);
 
@@ -722,7 +905,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                         </div>
 
                         {/* Progress Bar */}
-                        {setValuesLoading && seedingStatus === 'running' && (
+                        {/* {setValuesLoading && seedingStatus === 'running' && (
                           <div className="progress-bar space-y-2">
                             <div className="flex items-center justify-between text-xs">
                               <span className="text-slate-400">Progress:</span>
@@ -735,13 +918,13 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                               ></div>
                             </div>
                           </div>
-                        )}
+                        )} */}
 
                         {/* SetValues Controls */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           {/* Count Selection */}
                           <div className="count-selector flex items-center space-x-2">
-                            <span className="text-xs text-slate-400">Count:</span>
+                            <span className="text-xs text-slate-400">SET Count:</span>
                             <Select value={selectedCount.toString()} onValueChange={(value) => setSelectedCount(parseInt(value))}>
                               <SelectTrigger className="w-20 h-7 text-xs">
                                 <SelectValue />
@@ -789,16 +972,54 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                           </div>
                         </div>
 
-                        {/* Coming Soon - GET Request */}
-                        <div className="flex items-center space-x-2 opacity-50">
-                          <button
-                            disabled
-                            className="px-3 py-2 text-xs rounded bg-gray-600 text-gray-400 cursor-not-allowed flex items-center space-x-1"
-                          >
-                            <Zap size={12} />
-                            <span>Fire GET (Coming Soon)</span>
-                          </button>
-                          <span className="text-xs text-slate-400">Fetch data for analysis - Coming Soon</span>
+                        {/* GET Operations Controls */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3">
+                          {/* GET Count Selection */}
+                          <div className="count-selector flex items-center space-x-2">
+                            <span className="text-xs text-slate-400">GET Count:</span>
+                            <Select value={selectedGetCount.toString()} onValueChange={(value) => setSelectedGetCount(parseInt(value))}>
+                              <SelectTrigger className="w-20 h-7 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="100">100</SelectItem>
+                                <SelectItem value="500">500</SelectItem>
+                                <SelectItem value="1000">1000</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Fire GET Operations Button */}
+                          <div className="fire-get flex items-center space-x-2">
+                            <button
+                              onClick={getLoading ? abortGetOperations : fireGetOperations}
+                              disabled={healthStatus !== 'ok' || getStatus === 'running'}
+                              className={`px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${getLoading
+                                  ? "bg-red-600 hover:bg-red-700 text-white"
+                                  : "bg-green-600 hover:bg-green-700 text-white"
+                                } ${(healthStatus !== 'ok' || getStatus === 'running') ? "opacity-50 cursor-not-allowed" : ""}`}
+                            >
+                              {getLoading ? <Square size={12} /> : <Zap size={12} />}
+                              <span>{getLoading ? "Abort GET" : "Fire GET"}</span>
+                            </button>
+                            <span className="text-xs text-slate-400">Fetch data for analysis</span>
+                          </div>
+
+                          {/* Stop GET Button */}
+                          <div className="stop-get flex items-center space-x-2">
+                            <button
+                              onClick={stopGetOperations}
+                              disabled={getStatus !== 'running'}
+                              className={`px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${getStatus === 'running'
+                                  ? "bg-orange-600 hover:bg-orange-700 text-white"
+                                  : "bg-gray-600 text-gray-400"
+                                }`}
+                            >
+                              <Square size={12} />
+                              <span>Stop GET</span>
+                            </button>
+                            <span className="text-xs text-slate-400">Cancel GET operation</span>
+                          </div>
                         </div>
                       </div>
                     </div>

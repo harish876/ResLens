@@ -25,11 +25,10 @@ import { HomePage } from "@/components/home-page/homePage";
 import PBFTPage from "@/components/home-page/PBFTFullView";
 import AuthorsPage from "./components/Authors/AuthorPage";
 import { Toaster } from "./components/ui/toaster";
-import { CpuPage } from "@/pages/CpuPage";
+import { CpuPage, FlamegraphPage } from "@/pages/CpuPage";
 import { MemoryPage } from "@/pages/MemoryPage";
 import { ExplorerPage } from "@/pages/ExplorerPage";
 import { ResViewPage } from "@/pages/ResViewPage";
-import { FlamegraphPage } from "@/pages/FlamegraphPage";
 import { ModeProvider } from "@/contexts/ModeContext";
 import { Loading } from "@/components/ui/loading";
 

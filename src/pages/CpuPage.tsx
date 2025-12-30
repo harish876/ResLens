@@ -28,3 +28,7 @@ export function CpuPage() {
     </PageLayout>
   );
 } 
+
+export function FlamegraphPage() {
+  return <CpuPageComponent/>
+}

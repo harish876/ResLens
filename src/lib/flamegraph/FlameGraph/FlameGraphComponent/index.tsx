@@ -13,6 +13,7 @@ import useResizeObserver from '@react-hook/resize-observer';
 import { Maybe } from 'true-myth';
 import debounce from 'lodash.debounce';
 import { Flamebearer } from '@pyroscope/models/src';
+import { useToast } from '@/hooks/use-toast';
 import styles from './canvas.module.css';
 import Flamegraph from './Flamegraph';
 import Highlight from './Highlight';
@@ -87,6 +88,7 @@ export default function FlameGraphComponent(props: FlamegraphProps) {
   const { onZoom, onReset, isDirty, onFocusOnNode } = props;
   const { 'data-testid': dataTestId } = props;
   const { palette, setPalette } = props;
+  const { toast } = useToast();
 
   // debounce rendering canvas
   // used for situations like resizing
@@ -213,9 +215,45 @@ export default function FlameGraphComponent(props: FlamegraphProps) {
 
       const CopyItem = () => {
         const onClick = () => {
-          if (!navigator.clipboard) return;
-
-          navigator.clipboard.writeText(barName);
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(barName).then(() => {
+              toast({
+                title: 'Success',
+                description: 'Copied to clipboard',
+                variant: 'default',
+              });
+            }).catch(() => {
+              toast({
+                title: 'Error',
+                description: 'Failed to copy',
+                variant: 'destructive',
+              });
+            });
+          } else {
+            // Fallback for browsers without Clipboard API
+            const textarea = document.createElement('textarea');
+            textarea.value = barName;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+              document.execCommand('copy');
+              toast({
+                title: 'Success',
+                description: 'Copied to clipboard',
+                variant: 'default',
+              });
+            } catch (err) {
+              console.error('Failed to copy:', err);
+              toast({
+                title: 'Error',
+                description: 'Failed to copy',
+                variant: 'destructive',
+              });
+            }
+            document.body.removeChild(textarea);
+          }
         };
 
         return (
