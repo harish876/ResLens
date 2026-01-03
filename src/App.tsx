@@ -45,7 +45,7 @@ function App() {
             <Route path="/authors" element={<AuthorsPage />} />
             <Route path="/cpu" element={<CpuPage />} />
             <Route path="/memory" element={<MemoryPage />} />
-            <Route path="/explorer" element={<ExplorerPage />} />
+            {/* <Route path="/explorer" element={<ExplorerPage />} /> */}
             <Route path="/resview" element={<ResViewPage />} />
             <Route path="/flamegraph" element={<FlamegraphPage />} />
           </Routes>

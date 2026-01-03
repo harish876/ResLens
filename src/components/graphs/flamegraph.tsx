@@ -162,12 +162,12 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
   const { mode, api, refreshTrigger } = useMode();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+
   // Get initial values from URL parameters
   const initialSearchQuery = searchParams.get('searchQuery') || "";
   const initialViewType = searchParams.get('viewType') as ViewTypes || "both";
   const initialInterval = searchParams.get('interval') || "now-5m";
-  
+
   const [clientName, setClientName] = useState("cpp_client_1");
   const [profilingData, setProfilingData] = useState(ProfileData1);
 
@@ -190,7 +190,7 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
     FlamegraphRendererProps["sharedQuery"]
   >({
     searchQuery: initialSearchQuery,
-    onQueryChange: (value: any) => { 
+    onQueryChange: (value: any) => {
       // Update URL when search query changes
       updateURLParams('searchQuery', value);
     },
@@ -221,13 +221,13 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
 
   function updateURLParams(key: string, value: string | null) {
     const newParams = new URLSearchParams(searchParams);
-    
+
     if (value && value.trim() !== '') {
       newParams.set(key, value);
     } else {
       newParams.delete(key);
     }
-    
+
     // Update URL without refreshing page
     setSearchParams(newParams);
   }
@@ -886,8 +886,8 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                           <div className="health-status flex items-center space-x-2">
                             <span className="text-slate-400">Health:</span>
                             <span className={`px-2 py-1 rounded ${healthStatus === 'ok' ? 'bg-green-600 text-green-100' :
-                                healthStatus === 'error' ? 'bg-red-600 text-red-100' :
-                                  'bg-yellow-600 text-yellow-100'
+                              healthStatus === 'error' ? 'bg-red-600 text-red-100' :
+                                'bg-yellow-600 text-yellow-100'
                               }`}>
                               {healthStatus}
                             </span>
@@ -895,9 +895,9 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                           <div className="seeding-status flex items-center space-x-2">
                             <span className="text-slate-400">Status:</span>
                             <span className={`px-2 py-1 rounded ${seedingStatus === 'running' ? 'bg-green-600 text-green-100' :
-                                seedingStatus === 'stopped' ? 'bg-gray-600 text-gray-100' :
-                                  seedingStatus === 'error' ? 'bg-red-600 text-red-100' :
-                                    'bg-yellow-600 text-yellow-100'
+                              seedingStatus === 'stopped' ? 'bg-gray-600 text-gray-100' :
+                                seedingStatus === 'error' ? 'bg-red-600 text-red-100' :
+                                  'bg-yellow-600 text-yellow-100'
                               }`}>
                               {seedingStatus}
                             </span>
@@ -945,8 +945,8 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                               onClick={setValuesLoading ? abortSetValues : fireSetValues}
                               disabled={healthStatus !== 'ok' || seedingStatus === 'running'}
                               className={`abort-button px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${setValuesLoading
-                                  ? "bg-red-600 hover:bg-red-700 text-white"
-                                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                                ? "bg-red-600 hover:bg-red-700 text-white"
+                                : "bg-blue-600 hover:bg-blue-700 text-white"
                                 } ${(healthStatus !== 'ok' || seedingStatus === 'running') ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                               {setValuesLoading ? <Square size={12} /> : <Zap size={12} />}
@@ -961,8 +961,8 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                               onClick={stopSeeding}
                               disabled={seedingStatus !== 'running'}
                               className={`px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${seedingStatus === 'running'
-                                  ? "bg-orange-600 hover:bg-orange-700 text-white"
-                                  : "bg-gray-600 text-gray-400"
+                                ? "bg-orange-600 hover:bg-orange-700 text-white"
+                                : "bg-gray-600 text-gray-400"
                                 }`}
                             >
                               <Square size={12} />
@@ -995,8 +995,8 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                               onClick={getLoading ? abortGetOperations : fireGetOperations}
                               disabled={healthStatus !== 'ok' || getStatus === 'running'}
                               className={`px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${getLoading
-                                  ? "bg-red-600 hover:bg-red-700 text-white"
-                                  : "bg-green-600 hover:bg-green-700 text-white"
+                                ? "bg-red-600 hover:bg-red-700 text-white"
+                                : "bg-green-600 hover:bg-green-700 text-white"
                                 } ${(healthStatus !== 'ok' || getStatus === 'running') ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                               {getLoading ? <Square size={12} /> : <Zap size={12} />}
@@ -1011,8 +1011,8 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                               onClick={stopGetOperations}
                               disabled={getStatus !== 'running'}
                               className={`px-3 py-2 text-xs rounded transition-colors flex items-center space-x-1 ${getStatus === 'running'
-                                  ? "bg-orange-600 hover:bg-orange-700 text-white"
-                                  : "bg-gray-600 text-gray-400"
+                                ? "bg-orange-600 hover:bg-orange-700 text-white"
+                                : "bg-gray-600 text-gray-400"
                                 }`}
                             >
                               <Square size={12} />
@@ -1118,12 +1118,12 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                     sharedQuery={query}
                     onNodeClick={(nodeName, nodeData) => {
                       const action = nodeData?.action || 'default';
-                      
-                      switch(action) {
+
+                      switch (action) {
                         case 'viewCode':
                           let functionName = nodeName.split('/').pop()?.split('(')[0] || nodeName;
                           let repoUrl = '';
-                          
+
                           if (functionName.startsWith('resdb::')) {
                             functionName = functionName.replace(/^resdb::/, '');
                             repoUrl = 'https://github.com/apache/incubator-resilientdb/search';
@@ -1138,11 +1138,11 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                             });
                             break;
                           }
-                          
+
                           const searchQuery = `?q=${encodeURIComponent(functionName)}&type=code`;
                           window.open(repoUrl + searchQuery, '_blank');
                           break;
-                          
+
                         case 'explainCode':
                           console.log('Explaining code for:', nodeName);
 
@@ -1151,9 +1151,9 @@ export const Flamegraph = (props: FlamegraphCardProps) => {
                             description: `Analyzing code for ${nodeName}...`,
                             variant: "default",
                           });
-                          
+
                           break;
-                          
+
                         default:
                           console.log('Default action for node:', nodeName, nodeData);
                       }

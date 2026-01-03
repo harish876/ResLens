@@ -31,27 +31,32 @@ const navigationItems = [
   {
     name: "Execution View",
     href: "/cpu",
-    description: "CPU and execution metrics"
+    description: "CPU and execution metrics",
+    disabled: false
   },
   {
     name: "Memory View",
     href: "/memory",
-    description: "Memory usage and metrics"
+    description: "Memory usage and metrics",
+    disabled: false
   },
   {
     name: "Data View",
     href: "/explorer",
-    description: "Data exploration and analysis"
+    description: "Data exploration and analysis",
+    disabled: true
   },
   {
     name: "Protocol View",
     href: "/resview",
-    description: "Protocol and network metrics"
+    description: "Protocol and network metrics",
+    disabled: false
   },
   {
     name: "Flamegraph",
     href: "/flamegraph",
-    description: "Stack trace visualization"
+    description: "Stack trace visualization",
+    disabled: false
   }
 ];
 
@@ -60,37 +65,43 @@ const dropdownItems = [
     name: "Dashboard",
     href: "/dashboard",
     icon: BarChart3,
-    description: "Overview with all views"
+    description: "Overview with all views",
+    disabled: false
   },
   {
     name: "Execution View",
     href: "/cpu",
     icon: Cpu,
-    description: "CPU and execution metrics"
+    description: "CPU and execution metrics",
+    disabled: false
   },
   {
     name: "Memory View",
     href: "/memory",
     icon: HardDrive,
-    description: "Memory usage and metrics"
+    description: "Memory usage and metrics",
+    disabled: false
   },
   {
     name: "Data View",
     href: "/explorer",
     icon: Database,
-    description: "Data exploration and analysis"
+    description: "Data exploration and analysis",
+    disabled: true
   },
   {
     name: "Protocol View",
     href: "/resview",
     icon: Network,
-    description: "Protocol and network metrics"
+    description: "Protocol and network metrics",
+    disabled: false
   },
   {
     name: "Flamegraph",
     href: "/flamegraph",
     icon: Flame,
-    description: "Stack trace visualization"
+    description: "Stack trace visualization",
+    disabled: false
   }
 ];
 
@@ -101,6 +112,23 @@ export function Navigation() {
     <nav className="flex space-x-1">
       {navigationItems.slice(0, 4).map((item) => {
         const isActive = location.pathname === item.href;
+        const isDisabled = item.disabled === true;
+        
+        if (isDisabled) {
+          return (
+            <span
+              key={item.name}
+              className={cn(
+                "px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-not-allowed opacity-50",
+                "text-slate-500"
+              )}
+              title={`${item.description} (Disabled)`}
+            >
+              {item.name}
+            </span>
+          );
+        }
+        
         return (
           <Link
             key={item.name}

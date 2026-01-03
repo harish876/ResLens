@@ -288,11 +288,13 @@ export function MemoryMetricsGrid() {
   };
 
   useEffect(() => {
-    fetchIoTimeData();
-    fetchDiskRWData();
-    fetchDiskIOPSData();
-    fetchDiskWaitTimeData();
-  }, [refreshTrigger]);
+    if (mode === "prod") {
+      fetchIoTimeData();
+      fetchDiskRWData();
+      fetchDiskIOPSData();
+      fetchDiskWaitTimeData();
+    }
+  }, [refreshTrigger, mode]);
 
   const metrics = [
     {
@@ -324,6 +326,10 @@ export function MemoryMetricsGrid() {
       onRefresh: fetchDiskWaitTimeData,
     },
   ];
+
+  if (mode !== "prod") {
+    return null;
+  }
 
   return (
     <Card className="bg-slate-900 p-6">
